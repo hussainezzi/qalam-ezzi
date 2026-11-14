@@ -235,7 +235,7 @@ form.addEventListener("submit", (e) => {
 /* ---------- google sign-in placeholder ---------- */
 document.getElementById("googleBtn").addEventListener("click", () => {
   const msg = document.getElementById("portalMsg");
-  msg.textContent = "Google sign-in is connected at launch — this is the prototype.";
+  msg.textContent = "Student login opens with the first live cohort. Register your interest and we will email your sign-in link.";
   msg.style.color = "var(--gold-soft)";
 });
 
