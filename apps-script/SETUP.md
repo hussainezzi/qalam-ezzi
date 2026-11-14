@@ -45,6 +45,12 @@ Commit and push. The static demo card is replaced by live courses.
 Edit the **Courses** tab directly (or POST `admin_course_save` with an admin ID token).
 Set `status = live` and it appears on the site. Leave `zoom_link` empty until the class is confirmed.
 
+- `access_type = free` → anyone signed in can watch, no payment.
+- `access_type = paid` → only registrations with `status = paid` get the lessons and Zoom link.
+- `certificate = true` → the student can generate a certificate once every published lesson is complete.
+- Lessons live in the **Lessons** tab (`course_id`, `title`, `video_url`, `sort`, `published_at`). Leave
+  `published_at` empty to keep a lesson hidden.
+
 ## 7. Payments (when the gateway arrives)
 The gateway calls the web app with:
 ```json
@@ -53,6 +59,12 @@ The gateway calls the web app with:
 ```
 That marks the registration paid and emails the student the Zoom link. Keep the gateway secret in
 Script properties and verify the signature inside `paymentWebhook_` before trusting the call.
+
+## 8. Progress, badges, certificates
+- `lesson_progress` records what a student watched and awards `first_lesson`, `half_way` and
+  `course_complete` badges automatically.
+- `issue_certificate` builds a PDF in Drive, emails it, and stores a code like `QE-2026-4F2A91`.
+- `?action=verify&code=QE-2026-4F2A91` is the public verification endpoint for the share page.
 
 ## Notes / limits
 - Apps Script: ~20k requests/day, 1–2 s cold start, 6 min per execution. Fine for a first cohort; move to a real DB at scale.

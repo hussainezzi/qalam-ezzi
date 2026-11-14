@@ -16,14 +16,20 @@ const SHEETS = {
   users: "Users",
   lessons: "Lessons",
   payments: "Payments",
+  progress: "Progress",
+  badges: "Badges",
+  certificates: "Certificates",
 };
 
 const HEADERS = {
-  courses: ["id", "title", "slug", "description", "start_date", "sessions", "duration", "price", "currency", "status", "zoom_link", "created_at"],
+  courses: ["id", "title", "slug", "description", "start_date", "sessions", "duration", "price", "currency", "status", "zoom_link", "access_type", "certificate", "created_at"],
   registrations: ["id", "course_id", "name", "email", "phone", "city", "status", "created_at", "paid_at", "amount", "payment_ref"],
   users: ["email", "name", "picture", "created_at", "last_login"],
-  lessons: ["id", "course_id", "title", "video_url", "notes", "sort", "published_at"],
+  lessons: ["id", "course_id", "title", "video_url", "notes", "sort", "published_at", "duration_min"],
   payments: ["id", "registration_id", "email", "amount", "currency", "gateway", "gateway_ref", "status", "created_at"],
+  progress: ["email", "course_id", "lesson_id", "completed", "watched_seconds", "updated_at"],
+  badges: ["email", "badge", "course_id", "awarded_at"],
+  certificates: ["code", "email", "name", "course_id", "course_title", "issued_at", "pdf_url"],
 };
 
 /* ------------------------------ helpers ------------------------------ */
@@ -141,6 +147,7 @@ function doGet(e) {
     if (action === "courses") return listCourses_(e.parameter);
     if (action === "me") return me_(e.parameter);
     if (action === "admin_registrations") return adminRegistrations_(e.parameter);
+    if (action === "verify") return verifyCertificate_(e.parameter);
     return ok_({ service: "qalam-ezzi", time: new Date() });
   } catch (ex) {
     return err_(String(ex.message || ex), 500);
@@ -156,6 +163,8 @@ function doPost(e) {
     if (action === "login") return me_({ id_token: body.id_token });
     if (action === "admin_course_save") return adminCourseSave_(body);
     if (action === "payment_webhook") return paymentWebhook_(body);
+    if (action === "lesson_progress") return lessonProgress_(body);
+    if (action === "issue_certificate") return issueCertificate_(body);
     return err_("unknown action");
   } catch (ex) {
     return err_(String(ex.message || ex), 500);
@@ -338,6 +347,159 @@ function paymentWebhook_(body) {
   return ok_({ confirmed: true });
 }
 
+/* --------------------------- LMS: progress --------------------------- */
+
+const BADGES = {
+  first_lesson: { label: "First Stroke", note: "Completed your first lesson" },
+  half_way: { label: "Halfway", note: "Half of the course finished" },
+  course_complete: { label: "Course Complete", note: "Every lesson finished" },
+  first_paid: { label: "Committed", note: "Enrolled in a paid course" },
+};
+
+function canAccess_(email, course, regs) {
+  if (String(course.access_type || "paid").toLowerCase() === "free") return true;
+  const reg = regs.find((r) => String(r.email).toLowerCase() === email && String(r.course_id) === String(course.id));
+  return !!reg && String(reg.status) === "paid";
+}
+
+function publishedLessons_(courseId) {
+  return rows_("lessons")
+    .filter((l) => String(l.course_id) === String(courseId) && String(l.published_at || "") !== "")
+    .sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0));
+}
+
+function awardBadge_(email, badge, courseId) {
+  const all = rows_("badges");
+  const has = all.some((b) => String(b.email).toLowerCase() === email && b.badge === badge && String(b.course_id) === String(courseId));
+  if (has) return false;
+  append_("badges", { email: email, badge: badge, course_id: courseId, awarded_at: new Date() });
+  return true;
+}
+
+function progressFor_(email, courseId) {
+  const done = rows_("progress").filter(
+    (p) => String(p.email).toLowerCase() === email && String(p.course_id) === String(courseId) && String(p.completed) === "true"
+  );
+  return done.map((p) => String(p.lesson_id));
+}
+
+function lessonProgress_(body) {
+  const info = verifyGoogleToken_(body.id_token);
+  if (!info) return err_("not signed in", 401);
+  const email = info.email.toLowerCase();
+
+  const course = rows_("courses").find((c) => String(c.id) === String(body.course_id));
+  if (!course) return err_("course not found", 404);
+  const lesson = rows_("lessons").find((l) => String(l.id) === String(body.lesson_id));
+  if (!lesson || String(lesson.course_id) !== String(course.id)) return err_("lesson not found", 404);
+  if (!canAccess_(email, course, rows_("registrations"))) return err_("not enrolled", 403);
+
+  const completed = body.completed === true || String(body.completed) === "true";
+  const all = rows_("progress");
+  const existing = all.find((p) => String(p.email).toLowerCase() === email && String(p.lesson_id) === String(lesson.id));
+  if (existing) {
+    updateRow_("progress", existing.lesson_id, {
+      completed: completed,
+      watched_seconds: body.watched_seconds || existing.watched_seconds || 0,
+      updated_at: new Date(),
+    });
+  } else {
+    append_("progress", {
+      email: email,
+      course_id: course.id,
+      lesson_id: lesson.id,
+      completed: completed,
+      watched_seconds: body.watched_seconds || 0,
+      updated_at: new Date(),
+    });
+  }
+
+  const total = publishedLessons_(course.id).length;
+  const done = progressFor_(email, course.id).length;
+  const earned = [];
+  if (done > 0 && awardBadge_(email, "first_lesson", course.id)) earned.push(BADGES.first_lesson);
+  if (total && done / total >= 0.5 && awardBadge_(email, "half_way", course.id)) earned.push(BADGES.half_way);
+  if (total && done >= total && awardBadge_(email, "course_complete", course.id)) earned.push(BADGES.course_complete);
+
+  return ok_({ completed: done, total: total, percent: total ? Math.round((done / total) * 100) : 0, badges_earned: earned });
+}
+
+/* --------------------------- LMS: certificate --------------------------- */
+
+function issueCertificate_(body) {
+  const info = verifyGoogleToken_(body.id_token);
+  if (!info) return err_("not signed in", 401);
+  const email = info.email.toLowerCase();
+
+  const course = rows_("courses").find((c) => String(c.id) === String(body.course_id));
+  if (!course) return err_("course not found", 404);
+  if (String(course.certificate || "") === "false") return err_("this course does not offer a certificate", 400);
+  if (!canAccess_(email, course, rows_("registrations"))) return err_("not enrolled", 403);
+
+  const lessons = publishedLessons_(course.id);
+  const done = progressFor_(email, course.id);
+  if (!lessons.length || done.length < lessons.length) return err_("finish every lesson first", 400);
+
+  const existing = rows_("certificates").find((c) => String(c.email).toLowerCase() === email && String(c.course_id) === String(course.id));
+  if (existing) return ok_({ code: existing.code, url: existing.pdf_url, existing: true });
+
+  const code = "QE-" + new Date().getFullYear() + "-" + Utilities.getUuid().replace(/-/g, "").slice(0, 6).toUpperCase();
+  const name = info.name || email;
+
+  const doc = DocumentApp.create("Certificate " + code + " — " + name);
+  const b = doc.getBody();
+  b.setMarginTop(90).setMarginBottom(90).setMarginLeft(90).setMarginRight(90);
+  b.clear();
+  b.appendParagraph("QALAM EZZI").setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(14).setBold(true);
+  b.appendParagraph("Certificate of Completion").setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(30);
+  b.appendParagraph("\n");
+  b.appendParagraph("This certifies that").setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(12);
+  b.appendParagraph(name).setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(26).setBold(true);
+  b.appendParagraph("has completed the course").setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(12);
+  b.appendParagraph(String(course.title)).setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(18);
+  b.appendParagraph("\n");
+  b.appendParagraph(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "d MMMM yyyy"))
+    .setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(12);
+  b.appendParagraph("\nVerify: " + code).setAlignment(DocumentApp.HorizontalAlignment.CENTER).editAsText().setFontFamily("Georgia").setFontSize(10);
+  doc.saveAndClose();
+
+  const file = DriveApp.getFileById(doc.getId());
+  const pdf = file.getAs(MimeType.PDF);
+  const pdfFile = DriveApp.createFile(pdf).setName("Qalam Ezzi Certificate — " + name + " — " + code + ".pdf");
+  pdfFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  file.setTrashed(true);
+
+  append_("certificates", {
+    code: code,
+    email: email,
+    name: name,
+    course_id: course.id,
+    course_title: course.title,
+    issued_at: new Date(),
+    pdf_url: pdfFile.getUrl(),
+  });
+
+  MailApp.sendEmail({
+    to: email,
+    subject: "Your certificate — " + course.title,
+    htmlBody:
+      "<p>Dear " + escapeHtml_(String(name).split(" ")[0]) + ",</p>" +
+      "<p>Congratulations — you have completed <b>" + escapeHtml_(course.title) + "</b>.</p>" +
+      "<p><a href='" + pdfFile.getUrl() + "'>Download your certificate</a><br>Share it with code <b>" + code + "</b>.</p>" +
+      "<p>— Qalam Ezzi</p>",
+  });
+
+  return ok_({ code: code, url: pdfFile.getUrl() });
+}
+
+function verifyCertificate_(p) {
+  const code = String(p.code || "").trim().toUpperCase();
+  if (!code) return err_("code required");
+  const c = rows_("certificates").find((x) => String(x.code).toUpperCase() === code);
+  if (!c) return err_("certificate not found", 404);
+  return ok_({ code: c.code, name: c.name, course: c.course_title, issued_at: c.issued_at, valid: true });
+}
+
 function escapeHtml_(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -360,6 +522,8 @@ function setupSheets() {
       currency: "AED",
       status: "live",
       zoom_link: "",
+      access_type: "paid",
+      certificate: "true",
       created_at: new Date(),
     });
   }
