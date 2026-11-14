@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qalam Ezzi — Arabic Calligraphy, Taught by Hand</title>
+<meta name="description" content="Live online Arabic calligraphy classes with M Mohammad Ezzi, Dubai. Kits, course books and private workshops. Register for the next cohort.">
+<meta name="theme-color" content="#0b0b0d">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="preloader" id="preloader">
+  <div class="preloader__mark">ق</div>
+  <div class="preloader__bar"><span id="loadBar"></span></div>
+</div>
+
+<canvas id="ink" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <a class="brand" href="#top">
+    <svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.2"/>
+      <circle cx="32" cy="32" r="25.5" fill="none" stroke="currentColor" stroke-width="0.5" opacity=".5"/>
+      <text x="32" y="45" text-anchor="middle" font-family="Amiri, serif" font-size="34" fill="currentColor">ق</text>
+    </svg>
+    <span class="brand__text">
+      <span class="brand__name">Qalam Ezzi</span>
+      <span class="brand__sub">Arabic Calligraphy</span>
+    </span>
+  </a>
+  <nav class="nav__links" id="navLinks">
+    <a href="#about">The Master</a>
+    <a href="#gallery">Gallery</a>
+    <a href="#events">Events</a>
+    <a href="#courses">Courses</a>
+    <a href="#portal">Student Portal</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="nav__right">
+    <a class="btn btn--ghost" href="#courses">Book a seat</a>
+    <button class="burger" id="burger" aria-label="Menu"><span></span><span></span></button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero__word" aria-hidden="true">قلم</div>
+    <div class="wrap hero__inner">
+      <p class="eyebrow reveal">Dubai <span>·</span> Live online classes <span>·</span> Kits &amp; books</p>
+      <h1 class="hero__title">
+        <span class="line"><span>Arabic calligraphy,</span></span>
+        <span class="line"><em>taught by hand.</em></span>
+      </h1>
+      <p class="hero__copy reveal">Learn the qalam the way it has always been taught — one stroke, one letter, one breath at a time. Live classes with <strong>M Mohammad Ezzi</strong>, with students joining from Dubai, Canada and across the UAE.</p>
+      <div class="hero__actions reveal">
+        <button class="btn btn--gold" data-open-register>Register for a course</button>
+        <a class="btn btn--line" href="#gallery">See the work</a>
+      </div>
+      <div class="hero__meta reveal">
+        <div><span class="k">Format</span><span class="v">Live on Zoom</span></div>
+        <div><span class="k">Session</span><span class="v">2.5 hours</span></div>
+        <div><span class="k">Next cohort</span><span class="v">Date to be announced</span></div>
+      </div>
+    </div>
+    <div class="hero__scroll" aria-hidden="true"><span></span>scroll</div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>ARABIC CALLIGRAPHY</span><i>✦</i><span>LIVE ONLINE CLASSES</span><i>✦</i><span>QALAM &amp; INK</span><i>✦</i><span>DUBAI</span><i>✦</i><span>KITS &amp; COURSE BOOKS</span><i>✦</i>
+      <span>ARABIC CALLIGRAPHY</span><i>✦</i><span>LIVE ONLINE CLASSES</span><i>✦</i><span>QALAM &amp; INK</span><i>✦</i><span>DUBAI</span><i>✦</i><span>KITS &amp; COURSE BOOKS</span><i>✦</i>
+    </div>
+  </div>
+
+  <!-- ABOUT -->
+  <section class="section about" id="about">
+    <div class="wrap grid2">
+      <div class="about__visual reveal">
+        <div class="about__frame">
+          <img src="assets/img/ig07.jpg" alt="Arabic calligraphy study in black ink on paper" loading="lazy">
+        </div>
+        <div class="about__stamp">
+          <span>Hand</span><span>·</span><span>Ink</span><span>·</span><span>Qalam</span>
+        </div>
+      </div>
+      <div class="about__text">
+        <p class="eyebrow reveal">The master</p>
+        <h2 class="h2 reveal">A lifetime at the <em>qalam</em>.</h2>
+        <p class="reveal">Mohammad Ezzi is a Dubai-based calligrapher working in the classical Arabic scripts. His work moves between the discipline of the old masters and a warm, contemporary hand.</p>
+        <p class="reveal">He teaches the same way he writes — slowly, precisely, and with the student's own hand in mind. Classes run live online, so a student in Toronto and a student in Sharjah learn side by side.</p>
+        <ul class="about__list reveal">
+          <li><b>01</b> Classical scripts, taught from the stroke</li>
+          <li><b>02</b> Live classes, small groups, personal correction</li>
+          <li><b>03</b> Kits and course books shipped to your door</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="section gallery" id="gallery">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow reveal">The work</p>
+        <h2 class="h2 reveal">Ink, paper, and <em>patience</em>.</h2>
+        <a class="link-arrow reveal" href="https://www.instagram.com/qalamezzi/" target="_blank" rel="noopener">@qalamezzi on Instagram <span>↗</span></a>
+      </div>
+      <div class="gallery__grid">
+        <figure class="g-item g-item--tall reveal"><img src="assets/img/ig11.jpg" alt="Black and white Arabic calligraphy artwork" loading="lazy"><figcaption>Script study</figcaption></figure>
+        <figure class="g-item reveal"><img src="assets/img/ig08.jpg" alt="Hand-turned wooden calligraphy pens" loading="lazy"><figcaption>Qalam pens</figcaption></figure>
+        <figure class="g-item reveal"><img src="assets/img/ig12.jpg" alt="Arabic calligraphy composition in black and white" loading="lazy"><figcaption>Composition</figcaption></figure>
+        <figure class="g-item g-item--wide reveal"><img src="assets/img/ig13.jpg" alt="Arabic calligraphy piece on paper" loading="lazy"><figcaption>Finished piece</figcaption></figure>
+        <figure class="g-item reveal"><img src="assets/img/ig09.jpg" alt="Calligraphy pen nibs close up" loading="lazy"><figcaption>Nibs &amp; tips</figcaption></figure>
+        <figure class="g-item reveal"><img src="assets/img/ig10.jpg" alt="Calligraphy tools laid out on a white surface" loading="lazy"><figcaption>The kit</figcaption></figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- EVENTS -->
+  <section class="section events" id="events">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow reveal">Events</p>
+        <h2 class="h2 reveal">Where the ink <em>travels</em>.</h2>
+        <p class="section__note reveal">Workshops, exhibitions and live sessions — announced here first.</p>
+      </div>
+      <div class="events__list">
+        <article class="event reveal">
+          <div class="event__date"><span>Next</span><b>TBA</b></div>
+          <div class="event__body">
+            <h3>Foundation Course — Live Cohort</h3>
+            <p>Six live sessions on Zoom, 2.5 hours each, with personal correction between classes.</p>
+            <span class="tag">Online · Zoom</span>
+          </div>
+          <button class="btn btn--line" data-open-register>Register interest</button>
+        </article>
+        <article class="event reveal">
+          <div class="event__date"><span>Ongoing</span><b>Dubai</b></div>
+          <div class="event__body">
+            <h3>Private &amp; group workshops</h3>
+            <p>Calligraphy sessions for schools, studios and private groups, in person or online.</p>
+            <span class="tag">By arrangement</span>
+          </div>
+          <a class="btn btn--line" href="#contact">Enquire</a>
+        </article>
+        <article class="event reveal">
+          <div class="event__date"><span>Available</span><b>Now</b></div>
+          <div class="event__body">
+            <h3>Kits &amp; course books</h3>
+            <p>Qalam sets, ink, paper and the course books used in class — shipped worldwide.</p>
+            <span class="tag">Worldwide shipping</span>
+          </div>
+          <a class="btn btn--line" href="#contact">Order</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- COURSES -->
+  <section class="section courses" id="courses">
+    <div class="wrap">
+      <div class="section__head">
+        <p class="eyebrow reveal">Courses</p>
+        <h2 class="h2 reveal">Take a <em>seat</em>.</h2>
+      </div>
+      <div class="course-card reveal">
+        <div class="course-card__top">
+          <span class="pill">Enrolment open</span>
+          <span class="course-card__seats">Limited seats</span>
+        </div>
+        <h3>Foundations of Arabic Calligraphy</h3>
+        <p class="course-card__desc">A guided start in the classical scripts: how to hold the qalam, cut the nib, sit, breathe and form the letters. Live with Mohammad Ezzi, with homework corrected personally.</p>
+        <div class="course-card__meta">
+          <div><span class="k">Starts</span><span class="v">Date to be announced</span></div>
+          <div><span class="k">Length</span><span class="v">2.5 hours per session</span></div>
+          <div><span class="k">Where</span><span class="v">Zoom, live</span></div>
+          <div><span class="k">Includes</span><span class="v">Recordings after each class</span></div>
+        </div>
+        <div class="course-card__foot">
+          <button class="btn btn--gold" data-open-register>Register &amp; pay</button>
+          <span class="course-card__hint">Secure payment · Card details never touch our servers</span>
+        </div>
+      </div>
+      <p class="courses__note reveal">Payment gateway is being connected. Until then, register your interest and we will email you the enrolment link.</p>
+    </div>
+  </section>
+
+  <!-- PORTAL -->
+  <section class="section portal" id="portal">
+    <div class="wrap grid2 grid2--rev">
+      <div class="portal__text">
+        <p class="eyebrow reveal">Student portal</p>
+        <h2 class="h2 reveal">Your courses, in <em>one place</em>.</h2>
+        <p class="reveal">Sign in with your Gmail and your enrolled courses, class dates, Zoom links and recordings are waiting for you. No passwords to remember, nothing to install.</p>
+        <ul class="portal__list reveal">
+          <li>One-click Google sign-in</li>
+          <li>Live class links, only for enrolled students</li>
+          <li>Recordings and course material after each session</li>
+        </ul>
+        <button class="btn btn--line reveal" id="googleBtn">Continue with Google</button>
+        <p class="portal__soon reveal" id="portalMsg">Portal opens with the first live cohort.</p>
+      </div>
+      <div class="portal__card reveal">
+        <div class="portal__card-head">
+          <span>My courses</span><span class="dot"></span>
+        </div>
+        <div class="portal__row">
+          <div class="portal__thumb"></div>
+          <div><b>Foundations of Arabic Calligraphy</b><span>Live · Zoom</span></div>
+          <em>Enrolled</em>
+        </div>
+        <div class="portal__row portal__row--muted">
+          <div class="portal__thumb"></div>
+          <div><b>Next cohort</b><span>Dates to be announced</span></div>
+          <em>Soon</em>
+        </div>
+        <div class="portal__card-foot">Signed in as <b>student@gmail.com</b></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section contact" id="contact">
+    <div class="wrap">
+      <p class="eyebrow reveal">Contact</p>
+      <h2 class="h2 h2--big reveal">Let's put a qalam <em>in your hand</em>.</h2>
+      <div class="contact__grid">
+        <a class="contact__card reveal" href="tel:+971529552532">
+          <span class="k">Call / WhatsApp</span>
+          <span class="v">+971 52 955 2532</span>
+        </a>
+        <a class="contact__card reveal" href="https://www.instagram.com/qalamezzi/" target="_blank" rel="noopener">
+          <span class="k">Instagram</span>
+          <span class="v">@qalamezzi</span>
+        </a>
+        <a class="contact__card reveal" href="#" data-open-register>
+          <span class="k">Courses</span>
+          <span class="v">Register interest →</span>
+        </a>
+      </div>
+      <p class="contact__loc reveal">Dubai, United Arab Emirates · Classes online worldwide</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer__inner">
+    <div class="footer__brand">
+      <svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.2"/>
+        <text x="32" y="45" text-anchor="middle" font-family="Amiri, serif" font-size="34" fill="currentColor">ق</text>
+      </svg>
+      <div><b>Qalam Ezzi</b><span>Arabic calligraphy · Dubai</span></div>
+    </div>
+    <p>© <span id="year"></span> Qalam Ezzi. All rights reserved.</p>
+    <a href="https://www.instagram.com/qalamezzi/" target="_blank" rel="noopener">Instagram ↗</a>
+  </div>
+</footer>
+
+<!-- REGISTER MODAL -->
+<div class="modal" id="registerModal" aria-hidden="true">
+  <div class="modal__backdrop" data-close></div>
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="regTitle">
+    <button class="modal__close" data-close aria-label="Close">×</button>
+    <p class="eyebrow">Registration</p>
+    <h3 id="regTitle">Reserve your seat</h3>
+    <p class="modal__sub">Foundations of Arabic Calligraphy · Live on Zoom · Date to be announced</p>
+    <form id="regForm" novalidate>
+      <label>Full name<input type="text" name="name" required placeholder="Your name"></label>
+      <label>Email<input type="email" name="email" required placeholder="you@example.com"></label>
+      <label>WhatsApp / phone<input type="tel" name="phone" required placeholder="+971 …"></label>
+      <label>City<input type="text" name="city" placeholder="Dubai"></label>
+      <button class="btn btn--gold btn--full" type="submit">Send registration</button>
+      <p class="modal__fine">We will email you the payment link as soon as enrolment opens. This demo form does not store data yet.</p>
+    </form>
+    <div class="modal__done" id="regDone" hidden>
+      <div class="modal__tick">✓</div>
+      <h3>Thank you<span id="regName"></span></h3>
+      <p>Your interest is noted. We will email you the enrolment and payment link as soon as the next cohort is confirmed.</p>
+      <button class="btn btn--line" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+<script type="module" src="assets/js/main.js"></script>
+</body>
+</html>
