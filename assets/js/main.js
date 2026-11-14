@@ -203,14 +203,15 @@ const closeModal = () => {
   document.body.classList.remove("locked");
 };
 
-document.querySelectorAll("[data-open-register]").forEach((el) => {
-  el.addEventListener("click", (e) => {
-    e.preventDefault();
-    done.hidden = true;
-    form.hidden = false;
-    form.reset();
-    openModal();
-  });
+/* delegated so course cards rendered from the backend also open the modal */
+document.addEventListener("click", (e) => {
+  const trigger = e.target.closest("[data-open-register]");
+  if (!trigger) return;
+  e.preventDefault();
+  done.hidden = true;
+  form.hidden = false;
+  form.reset();
+  openModal();
 });
 modal.querySelectorAll("[data-close]").forEach((el) => el.addEventListener("click", closeModal));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
