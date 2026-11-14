@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course — Qalam Ezzi</title>
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="app">
+
+<header class="topbar">
+  <div class="shell topbar__in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/><text x="32" y="45" text-anchor="middle" font-family="Amiri, serif" font-size="34" fill="currentColor">ق</text></svg>
+      Qalam Ezzi
+    </a>
+    <nav class="topnav">
+      <a href="lms.html">Courses</a>
+      <a href="lms.html#mine">My learning</a>
+      <a href="index.html">Main site</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="shell" id="root">
+    <p class="sub">Loading…</p>
+  </div>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+(async function () {
+  const { get, post, user, mountButton, esc, money } = window.QE;
+  const root = document.getElementById("root");
+  const id = new URLSearchParams(location.search).get("id");
+
+  function who(u) {
+    document.getElementById("who").innerHTML =
+      '<span class="avatar">' + esc((u.name || "?").charAt(0).toUpperCase()) + "</span><span>" + esc(u.email) + "</span>";
+  }
+
+  if (!user()) {
+    root.innerHTML = '<div class="login"><h2>Sign in to open this course</h2><p>Use your Gmail — the same one you registered with.</p><div id="gsi"></div></div>';
+    mountButton(document.getElementById("gsi"), () => location.reload());
+    return;
+  }
+
+  const u = user();
+  who(u);
+  if (!id) { root.innerHTML = '<div class="notice err">Course not found.</div>'; return; }
+
+  const r = await get({ action: "course", id: id, id_token: u.token });
+
+  if (!r.ok) {
+    root.innerHTML = '<div class="notice err">' + esc(r.error || "Could not load this course") + "</div>";
+    if (r.code === 401) {
+      window.QE.store.clear();
+      setTimeout(() => location.reload(), 900);
+    }
+    return;
+  }
+
+  const c = r.data.course;
+  const lessons = r.data.lessons || [];
+  const done = r.data.completed || 0;
+  const pct = lessons.length ? Math.round((done / lessons.length) * 100) : 0;
+  const paid = r.data.access;
+
+  const lessonHtml = lessons.length ? lessons.map((l, i) => `
+    <div class="lesson ${l.completed ? "done" : ""}">
+      <span class="lesson__no">${String(i + 1).padStart(2, "0")}</span>
+      <div class="lesson__body">
+        <b>${esc(l.title)}</b>
+        <span>${esc(l.duration_min || "")}${l.completed ? " · completed" : ""}</span>
+      </div>
+      ${l.video_url
+        ? `<button class="btn btn--line btn--sm" data-play="${esc(l.id)}">${l.completed ? "Rewatch" : "Play"}</button>`
+        : `<span class="tag">Locked</span>`}
+    </div>`).join("") : '<div class="empty">Lessons will appear here once the course opens.</div>';
+
+  const cert = r.data.certificate;
+  const canCert = paid && lessons.length && done >= lessons.length;
+
+  root.innerHTML = `
+    <span class="tag ${paid ? "tag--live" : "tag--paid"}">${paid ? "Enrolled" : (r.data.status === "pending" ? "Awaiting payment" : money(c.price, c.currency))}</span>
+    <h1 style="margin-top:14px">${esc(c.title)}</h1>
+    <p class="sub">${esc(c.description || "")}</p>
+
+    <div class="panel" style="display:flex;gap:28px;flex-wrap:wrap">
+      <div><span class="tag">Starts</span><div>${esc(c.start_date || "TBA")}</div></div>
+      <div><span class="tag">Length</span><div>${esc(c.duration || "—")}</div></div>
+      <div><span class="tag">Sessions</span><div>${esc(c.sessions || "—")}</div></div>
+      <div><span class="tag">Progress</span><div>${done}/${lessons.length || "—"} · ${pct}%</div></div>
+    </div>
+
+    ${!paid ? `<div class="notice">
+      ${r.data.status === "pending"
+        ? "Your seat is reserved — lessons unlock once payment is confirmed."
+        : "Register for this course to unlock the lessons."}
+    </div>` : ""}
+
+    ${paid && c.zoom_link ? `<div class="notice">Live class link: <a href="${esc(c.zoom_link)}" target="_blank" rel="noopener">${esc(c.zoom_link)}</a></div>` : ""}
+
+    <div id="player"></div>
+
+    <h2>Lessons</h2>
+    ${lessonHtml}
+
+    ${canCert && !cert ? '<p style="margin-top:24px"><button class="btn btn--gold" id="certBtn">Get your certificate</button></p>' : ""}
+    ${cert ? `<div class="notice">Certificate <b>${esc(cert.code)}</b> — <a href="${esc(cert.url)}" target="_blank" rel="noopener">download / share</a></div>` : ""}
+  `;
+
+  document.querySelectorAll("[data-play]").forEach((b) => {
+    b.onclick = () => {
+      const l = lessons.find((x) => String(x.id) === b.getAttribute("data-play"));
+      if (!l) return;
+      const url = l.video_url || "";
+      const isEmbed = /youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com/.test(url);
+      const src = url
+        .replace("watch?v=", "embed/")
+        .replace("youtu.be/", "www.youtube.com/embed/")
+        .replace("/view", "/preview");
+      document.getElementById("player").innerHTML = isEmbed
+        ? `<div class="frame"><iframe src="${esc(src)}" allow="autoplay; fullscreen" allowfullscreen></iframe></div>`
+        : url
+          ? `<div class="frame"><video src="${esc(url)}" controls></video></div>`
+          : "";
+      markComplete(l);
+    };
+  });
+
+  async function markComplete(l) {
+    const res = await post({ action: "lesson_progress", id_token: u.token, course_id: c.id, lesson_id: l.id, completed: true });
+    if (res.ok && res.data.percent === 100) {
+      setTimeout(() => location.reload(), 700);
+    }
+  }
+
+  const certBtn = document.getElementById("certBtn");
+  if (certBtn) {
+    certBtn.onclick = async () => {
+      certBtn.disabled = true;
+      certBtn.textContent = "Creating…";
+      const res = await post({ action: "issue_certificate", id_token: u.token, course_id: c.id });
+      if (res.ok) {
+        window.open(res.data.url, "_blank");
+        location.reload();
+      } else {
+        certBtn.disabled = false;
+        certBtn.textContent = "Get your certificate";
+        alert(res.error || "Could not create the certificate");
+      }
+    };
+  }
+})();
+</script>
+</body>
+</html>

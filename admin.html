@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Qalam Ezzi</title>
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="app">
+
+<header class="topbar">
+  <div class="shell topbar__in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/><text x="32" y="45" text-anchor="middle" font-family="Amiri, serif" font-size="34" fill="currentColor">ق</text></svg>
+      Qalam Ezzi <span style="font-size:10px;letter-spacing:.24em;color:#b9b0a4;margin-left:6px">ADMIN</span>
+    </a>
+    <nav class="topnav">
+      <a href="lms.html">Courses</a>
+      <a href="lms.html#mine">Student view</a>
+      <a href="index.html">Main site</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="shell">
+    <div id="gate" hidden>
+      <div class="login">
+        <h2>Admin sign-in</h2>
+        <p>Only the account set as ADMIN_EMAIL can open this page.</p>
+        <div id="gsi"></div>
+      </div>
+    </div>
+
+    <div id="app" hidden>
+      <h1>Dashboard</h1>
+      <p class="sub">Courses, lessons, students and payments.</p>
+
+      <div class="stat" id="stats"></div>
+
+      <div class="tabs">
+        <div class="tab on" data-tab="courses">Courses</div>
+        <div class="tab" data-tab="lessons">Lessons</div>
+        <div class="tab" data-tab="students">Registrations</div>
+      </div>
+
+      <section id="tab-courses">
+        <div class="panel">
+          <h2 style="font-size:20px">Add / edit course</h2>
+          <form id="courseForm">
+            <input type="hidden" name="id">
+            <div class="form-row">
+              <label>Title<input name="title" required placeholder="Foundations of Arabic Calligraphy"></label>
+              <label>Start date<input name="start_date" placeholder="2026-11-20 or TBA"></label>
+            </div>
+            <label>Description<textarea name="description" rows="3" placeholder="What the student will learn"></textarea></label>
+            <div class="form-row">
+              <label>Price (leave empty for free)<input name="price" inputmode="decimal" placeholder="350"></label>
+              <label>Currency<input name="currency" value="AED"></label>
+            </div>
+            <div class="form-row">
+              <label>Type
+                <select name="access_type">
+                  <option value="paid">Paid</option>
+                  <option value="free">Free</option>
+                </select>
+              </label>
+              <label>Status
+                <select name="status">
+                  <option value="live">Live (visible on site)</option>
+                  <option value="draft">Draft (hidden)</option>
+                </select>
+              </label>
+            </div>
+            <div class="form-row">
+              <label>Sessions<input name="sessions" placeholder="6"></label>
+              <label>Session length<input name="duration" placeholder="2.5 hours"></label>
+            </div>
+            <label>Zoom link (only paid students see it)<input name="zoom_link" placeholder="https://zoom.us/j/..."></label>
+            <label>Certificate
+              <select name="certificate">
+                <option value="true">Yes — issue on completion</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <button class="btn btn--gold" type="submit">Save course</button>
+            <span id="courseMsg" class="sub" style="margin-left:12px"></span>
+          </form>
+        </div>
+        <div id="courseList"></div>
+      </section>
+
+      <section id="tab-lessons" hidden>
+        <div class="panel">
+          <h2 style="font-size:20px">Add lesson</h2>
+          <form id="lessonForm">
+            <div class="form-row">
+              <label>Course<select name="course_id" id="lessonCourse" required></select></label>
+              <label>Order<input name="sort" inputmode="numeric" placeholder="1"></label>
+            </div>
+            <label>Title<input name="title" required placeholder="Holding the qalam"></label>
+            <label>Video URL (YouTube / Vimeo / Drive / mp4)<input name="video_url" placeholder="https://youtu.be/..."></label>
+            <div class="form-row">
+              <label>Length (minutes)<input name="duration_min" inputmode="numeric" placeholder="18"></label>
+              <label>Publish
+                <select name="published">
+                  <option value="true">Yes</option>
+                  <option value="false">No, hide for now</option>
+                </select>
+              </label>
+            </div>
+            <label>Notes<textarea name="notes" rows="2"></textarea></label>
+            <button class="btn btn--gold" type="submit">Save lesson</button>
+            <span id="lessonMsg" class="sub" style="margin-left:12px"></span>
+          </form>
+        </div>
+        <div id="lessonList"></div>
+      </section>
+
+      <section id="tab-students" hidden>
+        <div id="regList"></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+(async function () {
+  const { get, post, user, mountButton, esc } = window.QE;
+
+  if (!user()) {
+    document.getElementById("gate").hidden = false;
+    mountButton(document.getElementById("gsi"), () => location.reload());
+    return;
+  }
+
+  const u = user();
+  document.getElementById("app").hidden = false;
+  document.getElementById("who").innerHTML =
+    '<span class="avatar">' + esc((u.name || "?").charAt(0).toUpperCase()) + '</span><span>' + esc(u.email) + '</span>' +
+    '<button class="btn btn--line btn--sm" id="out">Sign out</button>';
+  document.getElementById("out").onclick = () => { window.QE.store.clear(); location.reload(); };
+
+  let data = null;
+
+  async function load() {
+    const r = await get({ action: "admin_overview", id_token: u.token });
+    if (!r.ok) {
+      document.getElementById("app").innerHTML =
+        '<div class="notice err">' + esc(r.error === "admin only" ? "This account is not the admin." : (r.error || "Could not load")) + "</div>";
+      return;
+    }
+    data = r.data;
+    renderStats(); renderCourses(); renderLessons(); renderRegs();
+  }
+
+  function renderStats() {
+    const s = data.stats;
+    document.getElementById("stats").innerHTML = `
+      <div><b>${s.registrations}</b><span>Registrations</span></div>
+      <div><b>${s.paid}</b><span>Paid</span></div>
+      <div><b>${s.students}</b><span>Students</span></div>
+      <div><b>${s.revenue}</b><span>Revenue (AED)</span></div>
+      <div><b>${s.certificates}</b><span>Certificates</span></div>`;
+  }
+
+  function renderCourses() {
+    const host = document.getElementById("courseList");
+    host.innerHTML = data.courses.map((c) => `
+      <div class="lesson">
+        <div class="lesson__body">
+          <b>${esc(c.title)}</b>
+          <span>${esc(c.status)} · ${esc(c.access_type)} · ${esc(c.price || "free")} · ${esc(c.start_date || "TBA")} · ${c.lessons} lessons · ${c.registrations} students</span>
+        </div>
+        <button class="btn btn--line btn--sm" data-edit="${esc(c.id)}">Edit</button>
+      </div>`).join("") || '<div class="empty">No courses yet.</div>';
+
+    host.querySelectorAll("[data-edit]").forEach((b) => {
+      b.onclick = () => {
+        const c = data.courses.find((x) => x.id === b.getAttribute("data-edit"));
+        const f = document.getElementById("courseForm");
+        ["id", "title", "start_date", "description", "price", "currency", "access_type", "status", "sessions", "duration", "zoom_link", "certificate"].forEach((k) => {
+          if (f[k]) f[k].value = c[k] !== undefined ? c[k] : "";
+        });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      };
+    });
+
+    const sel = document.getElementById("lessonCourse");
+    sel.innerHTML = data.courses.map((c) => `<option value="${esc(c.id)}">${esc(c.title)}</option>`).join("");
+  }
+
+  function renderLessons() {
+    const host = document.getElementById("lessonList");
+    host.innerHTML = data.lessons.map((l) => {
+      const c = data.courses.find((x) => x.id === l.course_id);
+      return `<div class="lesson">
+        <span class="lesson__no">${esc(l.sort || "")}</span>
+        <div class="lesson__body"><b>${esc(l.title)}</b><span>${esc(c ? c.title : l.course_id)} · ${l.published_at ? "published" : "hidden"}</span></div>
+        <span class="tag">${esc((l.video_url || "").slice(0, 26))}</span>
+      </div>`;
+    }).join("") || '<div class="empty">No lessons yet.</div>';
+  }
+
+  function renderRegs() {
+    const host = document.getElementById("regList");
+    if (!data.registrations.length) { host.innerHTML = '<div class="empty">No registrations yet.</div>'; return; }
+    host.innerHTML = `<div class="panel" style="overflow:auto"><table>
+      <thead><tr><th>Student</th><th>Course</th><th>Status</th><th>Date</th><th></th></tr></thead>
+      <tbody>${data.registrations.map((r) => {
+        const c = data.courses.find((x) => x.id === r.course_id);
+        return `<tr>
+          <td><b>${esc(r.name)}</b><br><span style="color:#b9b0a4;font-size:11px">${esc(r.email)}</span></td>
+          <td>${esc(c ? c.title : r.course_id)}</td>
+          <td><span class="tag ${r.status === "paid" ? "tag--live" : "tag--paid"}">${esc(r.status)}</span></td>
+          <td>${esc(String(r.created_at).slice(0, 10))}</td>
+          <td>${r.status !== "paid" ? `<button class="btn btn--line btn--sm" data-paid="${esc(r.id)}">Mark paid</button>` : ""}</td>
+        </tr>`;
+      }).join("")}</tbody></table></div>`;
+
+    host.querySelectorAll("[data-paid]").forEach((b) => {
+      b.onclick = async () => {
+        if (!confirm("Mark this student as paid and email them the confirmation?")) return;
+        b.disabled = true; b.textContent = "…";
+        const r = await post({ action: "admin_mark_paid", id_token: u.token, registration_id: b.getAttribute("data-paid") });
+        if (r.ok) load(); else { b.disabled = false; b.textContent = "Mark paid"; alert(r.error); }
+      };
+    });
+  }
+
+  document.getElementById("courseForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const course = {};
+    ["id", "title", "start_date", "description", "price", "currency", "access_type", "status", "sessions", "duration", "zoom_link", "certificate"].forEach((k) => { course[k] = f[k].value.trim(); });
+    const msg = document.getElementById("courseMsg");
+    msg.textContent = "Saving…";
+    const r = await post({ action: "admin_course_save", id_token: u.token, course });
+    if (r.ok) { msg.textContent = "Saved ✓"; f.reset(); f.id.value = ""; load(); }
+    else { msg.textContent = r.error || "Failed"; }
+  };
+
+  document.getElementById("lessonForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const lesson = {
+      course_id: f.course_id.value,
+      title: f.title.value.trim(),
+      video_url: f.video_url.value.trim(),
+      notes: f.notes.value.trim(),
+      sort: f.sort.value || 0,
+      duration_min: f.duration_min.value,
+      published: f.published.value === "true",
+    };
+    const msg = document.getElementById("lessonMsg");
+    msg.textContent = "Saving…";
+    const r = await post({ action: "admin_lesson_save", id_token: u.token, lesson });
+    if (r.ok) { msg.textContent = "Saved ✓"; f.title.value = ""; f.video_url.value = ""; f.notes.value = ""; load(); }
+    else { msg.textContent = r.error || "Failed"; }
+  };
+
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.onclick = () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("on"));
+      t.classList.add("on");
+      ["courses", "lessons", "students"].forEach((k) => {
+        document.getElementById("tab-" + k).hidden = k !== t.dataset.tab;
+      });
+    };
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Learning — Qalam Ezzi</title>
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Amiri&family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="app">
+
+<header class="topbar">
+  <div class="shell topbar__in">
+    <a class="logo" href="index.html">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/><text x="32" y="45" text-anchor="middle" font-family="Amiri, serif" font-size="34" fill="currentColor">ق</text></svg>
+      Qalam Ezzi
+    </a>
+    <nav class="topnav">
+      <a href="lms.html">Courses</a>
+      <a href="lms.html#mine">My learning</a>
+      <a href="admin.html">Admin</a>
+      <a href="index.html">Main site</a>
+    </nav>
+    <div class="who" id="who"></div>
+  </div>
+</header>
+
+<main class="page">
+  <div class="shell">
+
+    <div id="gate" hidden>
+      <div class="login">
+        <h2>Sign in to learn</h2>
+        <p>Use your Gmail — no password to remember.</p>
+        <div id="gsi"></div>
+      </div>
+    </div>
+
+    <div id="app" hidden>
+      <h1 id="greeting">My learning</h1>
+      <p class="sub">Your enrolled courses and progress.</p>
+
+      <section id="mine" class="grid cards" style="margin-bottom:48px"></section>
+
+      <h2>All courses</h2>
+      <p class="sub">Browse everything on offer.</p>
+      <section id="catalog" class="grid cards"></section>
+    </div>
+
+  </div>
+</main>
+
+<script src="assets/js/config.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+(async function () {
+  const { get, user, mountButton, esc, money } = window.QE;
+
+  async function boot() {
+    const u = user();
+    if (!u) {
+      document.getElementById("gate").hidden = false;
+      mountButton(document.getElementById("gsi"), () => location.reload());
+      return;
+    }
+    document.getElementById("app").hidden = false;
+    document.getElementById("who").innerHTML =
+      '<span class="avatar">' + esc((u.name || "?").charAt(0).toUpperCase()) + '</span>' +
+      '<span>' + esc(u.email) + '</span>' +
+      '<button class="btn btn--line btn--sm" id="out">Sign out</button>';
+    document.getElementById("out").onclick = () => { window.QE.store.clear(); location.reload(); };
+    document.getElementById("greeting").textContent = "Hello, " + (u.name || "").split(" ")[0];
+
+    await loadCourses();
+    await loadMine(u.token);
+  }
+
+  async function loadCourses() {
+    const r = await get({ action: "courses" });
+    const host = document.getElementById("catalog");
+    if (!r.ok || !r.data.courses.length) {
+      host.innerHTML = '<div class="empty">No courses published yet.</div>';
+      return;
+    }
+    host.innerHTML = r.data.courses.map((c) => `
+      <article class="card">
+        <h3>${esc(c.title)}</h3>
+        <p>${esc((c.description || "").slice(0, 120))}…</p>
+        <div class="card__meta">
+          <span>${esc(c.start_date || "Date TBA")}</span>
+          <span>${esc(c.duration || "")}</span>
+          <span>${esc(money(c.price, c.currency))}</span>
+        </div>
+        <p style="margin:16px 0 0"><a class="btn btn--line btn--sm" href="course.html?id=${encodeURIComponent(c.id)}">View course</a></p>
+      </article>`).join("");
+  }
+
+  async function loadMine(token) {
+    const r = await window.QE.post({ action: "login", id_token: token });
+    const host = document.getElementById("mine");
+    if (!r.ok) { host.innerHTML = ""; return; }
+    const en = r.data.enrolments || [];
+    if (!en.length) {
+      host.innerHTML = '<div class="empty" style="grid-column:1/-1">No enrolments yet — pick a course below to begin.</div>';
+      return;
+    }
+    host.innerHTML = en.map((e) => {
+      const done = (e.lessons || []).filter((l) => l.completed).length;
+      const total = (e.lessons || []).length;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      return `
+      <article class="card">
+        <span class="tag ${e.status === "paid" ? "tag--live" : "tag--paid"}">${e.status === "paid" ? "Enrolled" : "Awaiting payment"}</span>
+        <h3 style="margin-top:12px">${esc(e.course.title)}</h3>
+        <div class="bar"><span style="width:${pct}%"></span></div>
+        <div class="card__meta" style="margin-top:8px"><span>${done}/${total || "—"} lessons</span><span>${pct}%</span></div>
+        <p style="margin:16px 0 0"><a class="btn btn--gold btn--sm" href="course.html?id=${encodeURIComponent(e.course.id)}">${e.status === "paid" ? "Continue" : "View"}</a></p>
+      </article>`;
+    }).join("");
+  }
+
+  boot();
+})();
+</script>
+</body>
+</html>

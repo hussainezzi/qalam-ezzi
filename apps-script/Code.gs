@@ -147,6 +147,8 @@ function doGet(e) {
     if (action === "courses") return listCourses_(e.parameter);
     if (action === "me") return me_(e.parameter);
     if (action === "admin_registrations") return adminRegistrations_(e.parameter);
+    if (action === "course") return courseDetail_(e.parameter);
+    if (action === "admin_overview") return adminOverview_(e.parameter);
     if (action === "verify") return verifyCertificate_(e.parameter);
     return ok_({ service: "qalam-ezzi", time: new Date() });
   } catch (ex) {
@@ -165,6 +167,8 @@ function doPost(e) {
     if (action === "payment_webhook") return paymentWebhook_(body);
     if (action === "lesson_progress") return lessonProgress_(body);
     if (action === "issue_certificate") return issueCertificate_(body);
+    if (action === "admin_lesson_save") return adminLessonSave_(body);
+    if (action === "admin_mark_paid") return adminMarkPaid_(body);
     return err_("unknown action");
   } catch (ex) {
     return err_(String(ex.message || ex), 500);
@@ -502,6 +506,139 @@ function verifyCertificate_(p) {
 
 function escapeHtml_(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* --------------------------- LMS: course page --------------------------- */
+
+function courseDetail_(p) {
+  const info = verifyGoogleToken_(p.id_token);
+  if (!info) return err_("not signed in", 401);
+  const email = info.email.toLowerCase();
+
+  const course = rows_("courses").find((c) => String(c.id) === String(p.id));
+  if (!course) return err_("course not found", 404);
+
+  const regs = rows_("registrations");
+  const reg = regs.find((r) => String(r.email).toLowerCase() === email && String(r.course_id) === String(course.id));
+  const access = canAccess_(email, course, regs);
+  const done = progressFor_(email, course.id);
+
+  const lessons = publishedLessons_(course.id).map((l) => ({
+    id: l.id,
+    title: l.title,
+    sort: l.sort,
+    duration_min: l.duration_min || "",
+    video_url: access ? l.video_url : "",
+    notes: access ? l.notes : "",
+    completed: done.indexOf(String(l.id)) > -1,
+  }));
+
+  const cert = rows_("certificates").find((c) => String(c.email).toLowerCase() === email && String(c.course_id) === String(course.id));
+
+  return ok_({
+    course: {
+      id: course.id, title: course.title, description: course.description,
+      start_date: course.start_date, duration: course.duration, sessions: course.sessions,
+      price: course.price, currency: course.currency, access_type: course.access_type || "paid",
+      zoom_link: access ? course.zoom_link : "",
+    },
+    access: access,
+    status: reg ? reg.status : "none",
+    lessons: lessons,
+    completed: done.length,
+    certificate: cert ? { code: cert.code, url: cert.pdf_url } : null,
+    badges: rows_("badges").filter((b) => String(b.email).toLowerCase() === email && String(b.course_id) === String(course.id)),
+  });
+}
+
+/* --------------------------- admin panel --------------------------- */
+
+function requireAdmin_(idToken) {
+  const info = verifyGoogleToken_(idToken);
+  const cfg = props_();
+  if (!info) return { error: err_("not signed in", 401) };
+  if (!cfg.admin || info.email.toLowerCase() !== cfg.admin) return { error: err_("admin only", 403) };
+  return { info: info };
+}
+
+function adminOverview_(p) {
+  const gate = requireAdmin_(p.id_token);
+  if (gate.error) return gate.error;
+
+  const regs = rows_("registrations");
+  const paid = regs.filter((r) => String(r.status) === "paid");
+  return ok_({
+    admin: gate.info.email,
+    courses: rows_("courses").map((c) => ({
+      id: c.id, title: c.title, status: c.status, price: c.price, currency: c.currency,
+      start_date: c.start_date, access_type: c.access_type || "paid", certificate: c.certificate || "",
+      lessons: publishedLessons_(c.id).length,
+      registrations: regs.filter((r) => String(r.course_id) === String(c.id)).length,
+    })),
+    registrations: regs.slice().reverse().slice(0, 100),
+    lessons: rows_("lessons").map((l) => ({ id: l.id, course_id: l.course_id, title: l.title, sort: l.sort, published_at: l.published_at, video_url: l.video_url })),
+    stats: {
+      registrations: regs.length,
+      paid: paid.length,
+      revenue: paid.reduce((s, r) => s + Number(r.amount || 0), 0),
+      students: rows_("users").length,
+      certificates: rows_("certificates").length,
+    },
+  });
+}
+
+function adminLessonSave_(body) {
+  const gate = requireAdmin_(body.id_token);
+  if (gate.error) return gate.error;
+
+  const l = body.lesson || {};
+  if (!l.course_id || !l.title) return err_("course and title required");
+  const data = {
+    course_id: l.course_id,
+    title: l.title,
+    video_url: l.video_url || "",
+    notes: l.notes || "",
+    sort: l.sort || 0,
+    duration_min: l.duration_min || "",
+    published_at: l.published === false ? "" : (l.published_at || new Date()),
+  };
+  if (l.id) {
+    updateRow_("lessons", l.id, data);
+    return ok_({ id: l.id, updated: true });
+  }
+  data.id = uid_("LSN");
+  append_("lessons", data);
+  return ok_({ id: data.id, created: true });
+}
+
+function adminMarkPaid_(body) {
+  const gate = requireAdmin_(body.id_token);
+  if (gate.error) return gate.error;
+
+  const reg = rows_("registrations").find((r) => String(r.id) === String(body.registration_id));
+  if (!reg) return err_("registration not found", 404);
+  const course = rows_("courses").find((c) => String(c.id) === String(reg.course_id)) || {};
+
+  updateRow_("registrations", reg.id, {
+    status: "paid",
+    paid_at: new Date(),
+    amount: body.amount || course.price || "",
+    payment_ref: body.payment_ref || "manual",
+  });
+  awardBadge_(String(reg.email).toLowerCase(), "first_paid", reg.course_id);
+
+  MailApp.sendEmail({
+    to: reg.email,
+    subject: "Seat confirmed — " + (course.title || "your course"),
+    htmlBody:
+      "<p>Dear " + escapeHtml_(String(reg.name).split(" ")[0]) + ",</p>" +
+      "<p>Your seat is confirmed for <b>" + escapeHtml_(course.title || "") + "</b>.</p>" +
+      (course.start_date ? "<p>Starts: " + escapeHtml_(course.start_date) + "</p>" : "") +
+      (course.zoom_link ? "<p>Zoom: <a href='" + course.zoom_link + "'>" + course.zoom_link + "</a></p>" : "") +
+      "<p>Sign in on the site to open your lessons.</p><p>— Qalam Ezzi</p>",
+  });
+
+  return ok_({ registration_id: reg.id, status: "paid" });
 }
 
 /* --------------------------- one-time setup --------------------------- */
